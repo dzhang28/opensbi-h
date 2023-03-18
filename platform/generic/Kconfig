@@ -50,4 +50,8 @@ config PLATFORM_STARFIVE_JH7110
 	bool "StarFive JH7110 support"
 	default n
 
+config PLATFORM_SOPHGO_MANGO
+	bool "Sophgo MANGO support"
+	default n
+
 endif
