@@ -237,8 +237,16 @@ static void thead_c9xx_pmu_ctr_enable_irq(uint32_t ctr_idx)
 	 * Otherwise, there will be race conditions where we may clear the bit
 	 * the software is yet to handle the interrupt.
 	 */
-	if (!(mip_val & THEAD_C9XX_MIP_MOIP))
+	if (mip_val & THEAD_C9XX_MIP_MOIP)
 		csr_clear(THEAD_C9XX_CSR_MCOUNTEROF, BIT(ctr_idx));
+
+	/**
+	 * This register is described in c9xx document as the control register
+	 * for enabling writes to the superuser state counter. However, if the
+	 * corresponding bit is not set to 1, scounterof will always read as 0
+	 * when the counter register overflows.
+	 */
+	csr_set(THEAD_C9XX_CSR_MCOUNTERWEN, BIT(ctr_idx));
 
 	/**
 	 * SSCOFPMF uses the OF bit for enabling/disabling the interrupt,
@@ -250,6 +258,16 @@ static void thead_c9xx_pmu_ctr_enable_irq(uint32_t ctr_idx)
 
 static void thead_c9xx_pmu_ctr_disable_irq(uint32_t ctr_idx)
 {
+	unsigned long mip_val;
+
+	if (ctr_idx >= SBI_PMU_HW_CTR_MAX)
+		return;
+
+	mip_val = csr_read(CSR_MIP);
+	if (mip_val & THEAD_C9XX_MIP_MOIP)
+		csr_clear(THEAD_C9XX_CSR_MCOUNTEROF, BIT(ctr_idx));
+
+	csr_clear(THEAD_C9XX_CSR_MCOUNTERWEN, BIT(ctr_idx));
 	csr_clear(THEAD_C9XX_CSR_MCOUNTERINTEN, BIT(ctr_idx));
 }
 
